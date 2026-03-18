@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Faculty Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Welcome back, {{ current_user.name }}{% endblock %}
+
+{% block content %}
+<!-- ── Stat Cards ── -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:2rem;">
+  <div class="stat-card navy">
+    <div class="stat-icon"><i class="bi bi-calendar-check"></i></div>
+    <div>
+      <div class="stat-value">{{ total }}</div>
+      <div class="stat-label">Total Bookings</div>
+    </div>
+  </div>
+  <div class="stat-card teal">
+    <div class="stat-icon"><i class="bi bi-check-circle"></i></div>
+    <div>
+      <div class="stat-value">{{ approved_count }}</div>
+      <div class="stat-label">Approved</div>
+    </div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+    <div>
+      <div class="stat-value">{{ pending_count }}</div>
+      <div class="stat-label">Pending</div>
+    </div>
+  </div>
+  <div class="stat-card rose">
+    <div class="stat-icon"><i class="bi bi-calendar-event"></i></div>
+    <div>
+      <div class="stat-value">{{ upcoming | length }}</div>
+      <div class="stat-label">Upcoming Events</div>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;">
+
+  <!-- Upcoming Bookings -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <h5><i class="bi bi-calendar-week"></i> Upcoming Confirmed Bookings</h5>
+        <a href="{{ url_for('book_hall') }}" class="btn btn-amber btn-sm">
+          <i class="bi bi-plus"></i> New Booking
+        </a>
+      </div>
+      {% if upcoming %}
+        <div class="table-wrapper">
+          <table class="bms-table">
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>Hall</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for b in upcoming %}
+              <tr>
+                <td><span class="fw-600">{{ b.event_title }}</span></td>
+                <td>
+                  <span class="text-muted">{{ b.hall_name }}</span><br>
+                  <small class="text-muted">{{ b.location }}</small>
+                </td>
+                <td>{{ b.date.strftime('%d %b %Y') if b.date else '' }}</td>
+                <td>{{ b.start_time | string | slice(5) if b.start_time else '' }} – {{ b.end_time | string | slice(5) if b.end_time else '' }}</td>
+                <td><span class="badge badge-{{ b.status }}">{{ b.status | capitalize }}</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <i class="bi bi-calendar-x text-muted"></i>
+          <h5>No upcoming bookings</h5>
+          <p>Schedule your next seminar or webinar now.</p>
+          <a href="{{ url_for('book_hall') }}" class="btn btn-primary mt-2">Book a Hall</a>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Pending Requests -->
+    {% if pending %}
+    <div class="card mt-4">
+      <div class="card-header">
+        <h5><i class="bi bi-hourglass-split"></i> Pending Approval Requests</h5>
+      </div>
+      <div class="table-wrapper">
+        <table class="bms-table">
+          <thead>
+            <tr><th>Event</th><th>Hall</th><th>Date</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            {% for b in pending %}
+            <tr>
+              <td class="fw-600">{{ b.event_title }}</td>
+              <td>{{ b.hall_name }}</td>
+              <td>{{ b.date.strftime('%d %b %Y') if b.date else '' }}</td>
+              <td><span class="badge badge-pending"><span class="dot dot-yellow"></span>Pending</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Sidebar: Notifications + Quick links -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <h5><i class="bi bi-bell"></i> Notifications</h5>
+      </div>
+      <div class="card-body p-0">
+        {% if notifs %}
+          {% for n in notifs %}
+          <div class="notif-item {% if not n.is_read %}notif-item--unread{% endif %}">
+            <div class="notif-item-text">{{ n.message }}</div>
+            <div class="notif-item-meta text-muted">
+              <i class="bi bi-clock"></i>
+              {{ n.created_at.strftime('%d %b, %H:%M') if n.created_at else '' }}
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state" style="padding:2rem;">
+            <i class="bi bi-bell-slash text-muted" style="font-size:1.8rem;"></i>
+            <p class="mt-2 text-muted small">No notifications</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-header"><h5><i class="bi bi-lightning"></i> Quick Actions</h5></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:.6rem;">
+        <a href="{{ url_for('book_hall') }}" class="btn btn-primary">
+          <i class="bi bi-plus-circle"></i> Book a Hall
+        </a>
+        <a href="{{ url_for('hall_availability') }}" class="btn btn-outline">
+          <i class="bi bi-eye"></i> Check Availability
+        </a>
+        <a href="{{ url_for('my_bookings') }}" class="btn btn-outline">
+          <i class="bi bi-list-ul"></i> My Booking History
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

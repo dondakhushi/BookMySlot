@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Manage Faculty{% endblock %}
+{% block page_title %}Faculty Management{% endblock %}
+{% block page_subtitle %}Add, view, and manage faculty member accounts{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:3fr 2fr;gap:1.5rem;align-items:start;">
+
+  <!-- Faculty List -->
+  <div class="card">
+    <div class="card-header">
+      <h5><i class="bi bi-people"></i> Faculty Accounts ({{ faculty | length }})</h5>
+      <input type="text" id="tableSearch" class="form-control"
+             style="width:200px;" placeholder="Search faculty…">
+    </div>
+    {% if faculty %}
+      <div class="table-wrapper">
+        <table class="bms-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Department</th>
+              <th>Bookings</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for f in faculty %}
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:.6rem;">
+                  <div style="width:34px;height:34px;border-radius:50%;background:var(--navy);
+                              color:white;display:flex;align-items:center;justify-content:center;
+                              font-size:.85rem;font-weight:700;flex-shrink:0;">
+                    {{ f.name[0].upper() }}
+                  </div>
+                  <div>
+                    <div class="fw-600">{{ f.name }}</div>
+                    <div class="text-muted small">{{ f.phone or '—' }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="text-muted small">{{ f.email }}</td>
+              <td>{{ f.department or '—' }}</td>
+              <td>
+                <span style="background:var(--gray-100);padding:.2rem .6rem;border-radius:99px;font-size:.75rem;font-weight:600;">
+                  {{ f.booking_count }}
+                </span>
+              </td>
+              <td>
+                {% if f.is_active %}
+                  <span class="badge badge-approved"><span class="dot dot-green"></span>Active</span>
+                {% else %}
+                  <span class="badge badge-rejected">Inactive</span>
+                {% endif %}
+              </td>
+              <td>
+                <form method="POST" action="{{ url_for('toggle_faculty', user_id=f.id) }}">
+                  <button type="submit"
+                          class="btn btn-sm {% if f.is_active %}btn-danger{% else %}btn-success{% endif %}"
+                          data-confirm="{% if f.is_active %}Deactivate {{ f.name }}?{% else %}Activate {{ f.name }}?{% endif %}">
+                    {% if f.is_active %}
+                      <i class="bi bi-person-x"></i> Deactivate
+                    {% else %}
+                      <i class="bi bi-person-check"></i> Activate
+                    {% endif %}
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <i class="bi bi-people"></i>
+        <h5>No faculty accounts</h5>
+        <p>Add your first faculty member using the form.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Add Faculty Form -->
+  <div class="card">
+    <div class="card-header">
+      <h5><i class="bi bi-person-plus"></i> Add Faculty Account</h5>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('add_faculty') }}" novalidate>
+
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input type="text" class="form-control" name="name"
+                 placeholder="Dr. Jane Smith" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email Address *</label>
+          <input type="email" class="form-control" name="email"
+                 placeholder="jane.smith@university.edu" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Department *</label>
+          <input type="text" class="form-control" name="department"
+                 placeholder="Computer Science" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input type="tel" class="form-control" name="phone"
+                 placeholder="9XXXXXXXXX">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password *</label>
+          <input type="password" class="form-control" name="password"
+                 placeholder="Min. 8 characters" required minlength="8">
+        </div>
+
+        <div class="alert alert-info" style="font-size:.8rem;">
+          <i class="bi bi-info-circle"></i>
+          Share credentials with the faculty member. They can change their password after logging in.
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="bi bi-person-plus"></i> Create Account
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}Manage Bookings{% endblock %}
+{% block page_title %}All Bookings{% endblock %}
+{% block page_subtitle %}View, approve, and reject faculty booking requests{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header" style="flex-wrap:wrap;gap:.75rem;">
+    <h5><i class="bi bi-calendar-week"></i> Booking Requests</h5>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <!-- Status Filter Tabs -->
+      <div class="status-filter-tabs">
+        {% for s in ['all','pending','approved','rejected','cancelled'] %}
+        <a href="{{ url_for('admin_bookings') }}?status={{ s }}"
+           class="status-filter-tab {% if status_filter == s %}status-filter-tab--active{% endif %}">
+          {{ s | capitalize }}
+        </a>
+        {% endfor %}
+      </div>
+      <input type="text" id="tableSearch" class="form-control"
+             style="width:200px;" placeholder="Search…">
+    </div>
+  </div>
+
+  {% if bookings %}
+    <div class="table-wrapper">
+      <table class="bms-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Faculty</th>
+            <th>Event</th>
+            <th>Hall</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Attendees</th>
+            <th>Status</th>
+            <th>Requested</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in bookings %}
+          <tr>
+            <td class="text-muted small">{{ b.id }}</td>
+            <td>
+              <div class="fw-600">{{ b.faculty_name }}</div>
+              <div class="text-muted small">{{ b.department or '' }}</div>
+            </td>
+            <td>
+              <div class="fw-600">{{ b.event_title }}</div>
+              {% if b.description %}
+                <div class="text-muted small">{{ b.description[:50] }}{% if b.description|length > 50 %}…{% endif %}</div>
+              {% endif %}
+            </td>
+            <td>
+              <div>{{ b.hall_name }}</div>
+              <div class="text-muted small"><i class="bi bi-geo-alt"></i> {{ b.location }}</div>
+            </td>
+            <td>{{ b.date.strftime('%d %b %Y') if b.date else '—' }}</td>
+            <td class="text-muted small">
+              {{ b.start_time | string | slice(5) if b.start_time else '' }}<br>
+              {{ b.end_time   | string | slice(5) if b.end_time   else '' }}
+            </td>
+            <td>{{ b.attendees }}</td>
+            <td>
+              <span class="badge badge-{{ b.status }}">
+                <span class="dot dot-{% if b.status == 'approved' %}green{% elif b.status == 'pending' %}yellow{% else %}red{% endif %}"></span>
+                {{ b.status | capitalize }}
+              </span>
+              {% if b.admin_note %}
+                <div class="text-muted" style="font-size:.7rem;margin-top:.2rem;">{{ b.admin_note[:40] }}</div>
+              {% endif %}
+            </td>
+            <td class="text-muted small">{{ b.created_at.strftime('%d %b') if b.created_at else '' }}</td>
+            <td>
+              {% if b.status == 'pending' %}
+                <div style="display:flex;gap:.3rem;">
+                  <button class="btn btn-success btn-sm" data-bs-toggle="modal"
+                          data-bs-target="#approveModal{{ b.id }}">
+                    <i class="bi bi-check"></i>
+                  </button>
+                  <button class="btn btn-danger btn-sm" data-bs-toggle="modal"
+                          data-bs-target="#rejectModal{{ b.id }}">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+              {% else %}
+                <span class="text-muted small">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <i class="bi bi-calendar-x"></i>
+      <h5>No bookings found</h5>
+      <p>No booking requests match the selected filter.</p>
+    </div>
+  {% endif %}
+</div>
+
+<!-- ═══ Modals for each pending booking ═══ -->
+{% for b in bookings %}
+  {% if b.status == 'pending' %}
+
+  <!-- Approve Modal -->
+  <div class="modal fade" id="approveModal{{ b.id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius:var(--radius);overflow:hidden;border:none;">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-check-circle me-2"></i>Approve Booking #{{ b.id }}</h5>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div style="background:var(--gray-50);border-radius:8px;padding:.85rem 1rem;font-size:.85rem;margin-bottom:1rem;">
+            <div class="fw-600">{{ b.event_title }}</div>
+            <div class="text-muted mt-1">By {{ b.faculty_name }} ({{ b.department or 'N/A' }})</div>
+            <div class="text-muted mt-1"><i class="bi bi-building me-1"></i>{{ b.hall_name }} · {{ b.location }}</div>
+            <div class="text-muted mt-1"><i class="bi bi-calendar me-1"></i>
+              {{ b.date.strftime('%d %b %Y') if b.date else '' }} &nbsp;
+              {{ b.start_time | string | slice(5) if b.start_time else '' }} – {{ b.end_time | string | slice(5) if b.end_time else '' }}
+            </div>
+          </div>
+          <form method="POST" action="{{ url_for('admin_approve', booking_id=b.id) }}">
+            <div class="form-group">
+              <label class="form-label">Note to Faculty (optional)</label>
+              <input type="text" class="form-control" name="note"
+                     placeholder="e.g. Please set up AV equipment 30 mins before">
+            </div>
+            <button type="submit" class="btn btn-success w-100">
+              <i class="bi bi-check-circle"></i> Approve Booking
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reject Modal -->
+  <div class="modal fade" id="rejectModal{{ b.id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius:var(--radius);overflow:hidden;border:none;">
+        <div class="modal-header" style="background:var(--rose);">
+          <h5 class="modal-title"><i class="bi bi-x-circle me-2"></i>Reject Booking #{{ b.id }}</h5>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div style="background:var(--gray-50);border-radius:8px;padding:.85rem 1rem;font-size:.85rem;margin-bottom:1rem;">
+            <div class="fw-600">{{ b.event_title }}</div>
+            <div class="text-muted mt-1">By {{ b.faculty_name }}</div>
+            <div class="text-muted mt-1">{{ b.hall_name }} · {{ b.date.strftime('%d %b %Y') if b.date else '' }}</div>
+          </div>
+          <form method="POST" action="{{ url_for('admin_reject', booking_id=b.id) }}">
+            <div class="form-group">
+              <label class="form-label">Reason for Rejection *</label>
+              <textarea class="form-control" name="note" rows="3" required
+                        placeholder="e.g. Hall already reserved for university convocation"></textarea>
+            </div>
+            <button type="submit" class="btn btn-danger w-100">
+              <i class="bi bi-x-circle"></i> Reject Booking
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% endif %}
+{% endfor %}
+
+{% endblock %}

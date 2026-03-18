@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}My Bookings{% endblock %}
+{% block page_title %}My Bookings{% endblock %}
+{% block page_subtitle %}History and status of all your hall booking requests{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h5><i class="bi bi-list-ul"></i> All My Bookings</h5>
+    <div class="d-flex gap-2 align-items-center">
+      <input type="text" id="tableSearch" class="form-control"
+             style="width:220px;" placeholder="Search bookings…">
+      <a href="{{ url_for('book_hall') }}" class="btn btn-amber btn-sm">
+        <i class="bi bi-plus"></i> New Booking
+      </a>
+    </div>
+  </div>
+
+  {% if bookings %}
+    <div class="table-wrapper">
+      <table class="bms-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Event Title</th>
+            <th>Hall</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Attendees</th>
+            <th>Status</th>
+            <th>Admin Note</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in bookings %}
+          <tr>
+            <td class="text-muted small">{{ b.id }}</td>
+            <td>
+              <div class="fw-600">{{ b.event_title }}</div>
+              {% if b.description %}
+                <div class="text-muted small">{{ b.description[:60] }}{% if b.description|length > 60 %}…{% endif %}</div>
+              {% endif %}
+            </td>
+            <td>
+              <div class="fw-600">{{ b.hall_name }}</div>
+              <div class="text-muted small"><i class="bi bi-geo-alt"></i> {{ b.location }}</div>
+            </td>
+            <td>{{ b.date.strftime('%d %b %Y') if b.date else '—' }}</td>
+            <td class="text-muted small">
+              {{ b.start_time | string | slice(5) if b.start_time else '' }}<br>to&nbsp;{{ b.end_time | string | slice(5) if b.end_time else '' }}
+            </td>
+            <td>{{ b.attendees }}</td>
+            <td>
+              <span class="badge badge-{{ b.status }}">
+                <span class="dot dot-{% if b.status == 'approved' %}green{% elif b.status == 'pending' %}yellow{% else %}red{% endif %}"></span>
+                {{ b.status | capitalize }}
+              </span>
+            </td>
+            <td class="text-muted small">{{ b.admin_note or '—' }}</td>
+            <td>
+              {% if b.status in ('pending', 'approved') %}
+                <form method="POST" action="{{ url_for('cancel_my_booking', booking_id=b.id) }}">
+                  <button type="submit" class="btn btn-danger btn-sm"
+                          data-confirm="Cancel this booking? This cannot be undone.">
+                    <i class="bi bi-x"></i> Cancel
+                  </button>
+                </form>
+              {% else %}
+                <span class="text-muted small">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Legend -->
+    <div style="padding:.75rem 1.25rem;border-top:1px solid var(--gray-100);display:flex;gap:1.5rem;font-size:.78rem;">
+      <span><span class="badge badge-approved">Approved</span> Confirmed event</span>
+      <span><span class="badge badge-pending">Pending</span> Awaiting admin review</span>
+      <span><span class="badge badge-rejected">Rejected</span> Not approved</span>
+      <span><span class="badge badge-cancelled">Cancelled</span> Cancelled by you</span>
+    </div>
+
+  {% else %}
+    <div class="empty-state">
+      <i class="bi bi-calendar-x"></i>
+      <h5>No bookings yet</h5>
+      <p>Start by booking a seminar or webinar hall for your event.</p>
+      <a href="{{ url_for('book_hall') }}" class="btn btn-primary mt-2">
+        <i class="bi bi-plus-circle"></i> Book a Hall
+      </a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

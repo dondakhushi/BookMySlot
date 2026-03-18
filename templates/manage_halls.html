@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Manage Halls{% endblock %}
+{% block page_title %}Hall Management{% endblock %}
+{% block page_subtitle %}Add, edit, and activate seminar and webinar halls{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:3fr 2fr;gap:1.5rem;align-items:start;">
+
+  <!-- Hall List -->
+  <div class="card">
+    <div class="card-header">
+      <h5><i class="bi bi-building"></i> All Halls ({{ halls | length }})</h5>
+      <input type="text" id="tableSearch" class="form-control"
+             style="width:200px;" placeholder="Search halls…">
+    </div>
+    {% if halls %}
+      <div class="table-wrapper">
+        <table class="bms-table">
+          <thead>
+            <tr>
+              <th>Hall Name</th>
+              <th>Capacity</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for h in halls %}
+            <tr>
+              <td>
+                <div class="fw-600">{{ h.hall_name }}</div>
+                {% if h.description %}
+                  <div class="text-muted small">{{ h.description[:55] }}{% if h.description|length > 55 %}…{% endif %}</div>
+                {% endif %}
+                {% if h.facilities %}
+                  <div style="margin-top:.3rem;">
+                    {% for f in h.facilities.split(',')[:3] %}
+                      <span class="facility-chip">{{ f.strip() }}</span>
+                    {% endfor %}
+                    {% if h.facilities.split(',')|length > 3 %}
+                      <span class="facility-chip">+{{ h.facilities.split(',')|length - 3 }}</span>
+                    {% endif %}
+                  </div>
+                {% endif %}
+              </td>
+              <td><i class="bi bi-people me-1 text-muted"></i>{{ h.capacity }}</td>
+              <td class="text-muted small">{{ h.location }}</td>
+              <td>
+                {% if h.is_active %}
+                  <span class="badge badge-approved"><span class="dot dot-green"></span>Active</span>
+                {% else %}
+                  <span class="badge badge-cancelled">Inactive</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="display:flex;gap:.3rem;">
+                  <!-- Edit -->
+                  <button class="btn btn-outline btn-sm" data-bs-toggle="modal"
+                          data-bs-target="#editModal{{ h.id }}"
+                          title="Edit Hall">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <!-- Toggle Status -->
+                  <form method="POST" action="{{ url_for('toggle_hall', hall_id=h.id) }}">
+                    <button type="submit" class="btn btn-sm {% if h.is_active %}btn-danger{% else %}btn-success{% endif %}"
+                            data-confirm="{% if h.is_active %}Deactivate this hall?{% else %}Activate this hall?{% endif %}"
+                            title="{% if h.is_active %}Deactivate{% else %}Activate{% endif %}">
+                      <i class="bi bi-{% if h.is_active %}pause-circle{% else %}play-circle{% endif %}"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <i class="bi bi-building-x"></i>
+        <h5>No halls yet</h5>
+        <p>Add your first seminar or webinar hall using the form.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Add Hall Form -->
+  <div class="card">
+    <div class="card-header">
+      <h5><i class="bi bi-building-add"></i> Add New Hall</h5>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('manage_halls') }}">
+        <input type="hidden" name="action" value="add">
+
+        <div class="form-group">
+          <label class="form-label">Hall Name *</label>
+          <input type="text" class="form-control" name="hall_name"
+                 placeholder="e.g. Main Seminar Hall A" required maxlength="150">
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div class="form-group">
+            <label class="form-label">Capacity *</label>
+            <input type="number" class="form-control" name="capacity"
+                   min="1" max="2000" placeholder="e.g. 200" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Block / Location *</label>
+            <input type="text" class="form-control" name="location"
+                   placeholder="Block A, GF" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" name="description" rows="2"
+                    placeholder="Brief description of the hall"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Facilities</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;font-size:.85rem;">
+            {% set facility_list = ['Projector','Smart TV','Sound System','Air Conditioning','Wi-Fi','Whiteboard','Video Conferencing','Recording Equipment','Stage Lighting','HD Camera','Green Screen','Multiple Power Outlets'] %}
+            {% for f in facility_list %}
+            <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;">
+              <input type="checkbox" name="facilities" value="{{ f }}" style="accent-color:var(--navy);">
+              {{ f }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 mt-2">
+          <i class="bi bi-plus-circle"></i> Add Hall
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Edit Hall Modals ═══ -->
+{% for h in halls %}
+<div class="modal fade" id="editModal{{ h.id }}" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content" style="border-radius:var(--radius);overflow:hidden;border:none;">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Hall – {{ h.hall_name }}</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form method="POST" action="{{ url_for('manage_halls') }}">
+          <input type="hidden" name="action" value="edit">
+          <input type="hidden" name="hall_id" value="{{ h.id }}">
+
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:1rem;">
+            <div class="form-group">
+              <label class="form-label">Hall Name *</label>
+              <input type="text" class="form-control" name="hall_name"
+                     value="{{ h.hall_name }}" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Capacity *</label>
+              <input type="number" class="form-control" name="capacity"
+                     value="{{ h.capacity }}" min="1" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Location *</label>
+              <input type="text" class="form-control" name="location"
+                     value="{{ h.location }}" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" name="description" rows="2">{{ h.description or '' }}</textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Facilities</label>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;font-size:.85rem;">
+              {% set facility_list = ['Projector','Smart TV','Sound System','Air Conditioning','Wi-Fi','Whiteboard','Video Conferencing','Recording Equipment','Stage Lighting','HD Camera','Green Screen','Multiple Power Outlets'] %}
+              {% set current_facilities = h.facilities.split(',') if h.facilities else [] %}
+              {% for f in facility_list %}
+              <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;">
+                <input type="checkbox" name="facilities" value="{{ f }}"
+                       {% if f.strip() in current_facilities %}checked{% endif %}
+                       style="accent-color:var(--navy);">
+                {{ f }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 mt-2">
+            <i class="bi bi-save"></i> Save Changes
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}
