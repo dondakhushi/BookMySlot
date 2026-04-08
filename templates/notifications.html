@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+{% block page_subtitle %}Booking approval and rejection updates{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h5><i class="bi bi-bell-fill"></i> Your Notifications</h5>
+  </div>
+
+  {% if notifications %}
+    <div class="notification-list">
+      {% for notif in notifications %}
+        {% set is_approved = 'APPROVED' in notif.message %}
+        
+        <div class="notification-item {% if is_approved %}notification-approved{% else %}notification-rejected{% endif %}">
+          <div class="notification-icon">
+            {% if is_approved %}
+              ✅
+            {% else %}
+              ❌
+            {% endif %}
+          </div>
+          <div class="notification-content">
+            <div class="notification-message">
+              {{ notif.message }}
+            </div>
+            <div class="notification-time">
+              <i class="bi bi-clock"></i> 
+              {% if notif.created_at %}
+                {{ notif.created_at.strftime('%d %b %Y at %H:%M') }}
+              {% else %}
+                Just now
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <i class="bi bi-inbox"></i>
+      <h5>No notifications yet</h5>
+      <p>You'll receive notifications here when your booking requests are approved or rejected by the admin.</p>
+    </div>
+  {% endif %}
+</div>
+
+<style>
+.notification-list {
+  padding: 1rem;
+}
+
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: linear-gradient(135deg, #f3f4f6 0%, white 100%);
+  padding: 1.2rem;
+  margin-bottom: 0.8rem;
+  border-radius: 6px;
+  border-left: 4px solid;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.notification-item:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.notification-item.notification-approved {
+  border-left-color: #10b981;
+}
+
+.notification-item.notification-rejected {
+  border-left-color: #ef4444;
+}
+
+.notification-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.notification-content {
+  flex: 1;
+}
+
+.notification-message {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #333;
+}
+
+.notification-time {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
+}
+</style>
+{% endblock %}

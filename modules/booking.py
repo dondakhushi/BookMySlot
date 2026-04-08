@@ -147,6 +147,62 @@ def cancel_booking(cur, booking_id, user_id):
           AND  status  IN ('pending', 'approved')
     """, (booking_id, user_id))
     return cur.rowcount > 0
+
+
+def create_notification(cur, user_id, message):
+    """Create a notification for a user."""
+    cur.execute("""
+        INSERT INTO notifications (user_id, message, is_read)
+        VALUES (%s, %s, 0)
+    """, (user_id, message))
+    return cur.lastrowid
+
+
+def create_notification_for_status_change(cur, booking_id, status, admin_note=""):
+    """Create and return notification details after status change."""
+    # Get booking and user information
+    cur.execute("""
+        SELECT b.user_id, b.event_title, b.date, b.start_time, b.end_time, b.hall_id,
+               u.name AS faculty_name, u.email AS faculty_email,
+               h.hall_name, h.location
+        FROM   bookings b
+        JOIN   users    u ON b.user_id = u.id
+        JOIN   halls    h ON b.hall_id = h.id
+        WHERE  b.id = %s
+    """, (booking_id,))
+    booking = cur.fetchone()
+    
+    if not booking:
+        return None
+    
+    # Create notification message
+    if status == 'approved':
+        message = f"🎉 Your booking for '{booking['event_title']}' on {booking['date']} has been APPROVED."
+        if admin_note:
+            message += f" Admin note: {admin_note}"
+    else:  # rejected
+        message = f"❌ Your booking for '{booking['event_title']}' on {booking['date']} has been REJECTED."
+        if admin_note:
+            message += f" Reason: {admin_note}"
+    
+    # Save notification to database
+    create_notification(cur, booking['user_id'], message)
+    
+    # Return booking details for email notification
+    return {
+        'booking_id': booking_id,
+        'status': status,
+        'faculty_name': booking['faculty_name'],
+        'faculty_email': booking['faculty_email'],
+        'event_title': booking['event_title'],
+        'booking_date': booking['date'],
+        'start_time': booking['start_time'],
+        'end_time': booking['end_time'],
+        'hall_name': booking['hall_name'],
+        'location': booking['location'],
+        'admin_note': admin_note,
+        'message': message
+    }
  
  
 def create_notification(cur, user_id, message):

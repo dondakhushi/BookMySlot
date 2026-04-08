@@ -35,7 +35,7 @@
         <tbody>
           {% for b in bookings %}
           <tr>
-            <td class="text-muted small">{{ b.id }}</td>
+            <td class="text-muted small">{{ loop.index }}</td>
             <td>
               <div class="fw-600">{{ b.event_title }}</div>
               {% if b.description %}

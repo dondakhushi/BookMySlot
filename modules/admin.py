@@ -3,9 +3,9 @@
 # ============================================================
 
 
-def get_dashboard_stats(mysql) -> dict:
+def get_dashboard_stats(conn) -> dict:
     """Return counts used on the admin dashboard."""
-    cur = mysql.connection.cursor()
+    cur = conn.cursor()
 
     cur.execute("SELECT COUNT(*) AS cnt FROM halls WHERE is_active = 1")
     total_halls = cur.fetchone()['cnt']
@@ -39,9 +39,9 @@ def get_dashboard_stats(mysql) -> dict:
     }
 
 
-def get_all_bookings(mysql, status_filter: str = None) -> list:
+def get_all_bookings(conn, status_filter: str = None) -> list:
     """Return all bookings with hall and user details, optionally filtered."""
-    cur = mysql.connection.cursor()
+    cur = conn.cursor()
     sql = """
         SELECT b.*, u.name AS faculty_name, u.department,
                h.hall_name, h.location
@@ -51,45 +51,45 @@ def get_all_bookings(mysql, status_filter: str = None) -> list:
     """
     if status_filter and status_filter != 'all':
         sql += " WHERE b.status = %s"
-        cur.execute(sql + " ORDER BY b.created_at DESC", (status_filter,))
+        cur.execute(sql + " ORDER BY b.id ASC", (status_filter,))
     else:
-        cur.execute(sql + " ORDER BY b.created_at DESC")
+        cur.execute(sql + " ORDER BY b.id ASC")
 
     rows = cur.fetchall()
     cur.close()
     return rows
 
 
-def add_hall(mysql, hall_name: str, capacity: int, location: str,
+def add_hall(conn, hall_name: str, capacity: int, location: str,
              description: str, facilities: str) -> tuple[bool, str]:
     """Add a new seminar/webinar hall."""
-    cur = mysql.connection.cursor()
+    cur = conn.cursor()
     cur.execute("""
         INSERT INTO halls (hall_name, capacity, location, description, facilities)
         VALUES (%s, %s, %s, %s, %s)
     """, (hall_name, capacity, location, description, facilities))
-    mysql.connection.commit()
+    conn.commit()
     cur.close()
     return True, f'Hall "{hall_name}" added successfully.'
 
 
-def update_hall(mysql, hall_id: int, hall_name: str, capacity: int,
+def update_hall(conn, hall_id: int, hall_name: str, capacity: int,
                 location: str, description: str, facilities: str) -> tuple[bool, str]:
     """Update hall details."""
-    cur = mysql.connection.cursor()
+    cur = conn.cursor()
     cur.execute("""
         UPDATE halls
         SET hall_name=%s, capacity=%s, location=%s, description=%s, facilities=%s
         WHERE id=%s
     """, (hall_name, capacity, location, description, facilities, hall_id))
-    mysql.connection.commit()
+    conn.commit()
     cur.close()
     return True, 'Hall updated successfully.'
 
 
-def toggle_hall_status(mysql, hall_id: int) -> tuple[bool, str]:
+def toggle_hall_status(conn, hall_id: int) -> tuple[bool, str]:
     """Activate / deactivate a hall."""
-    cur = mysql.connection.cursor()
+    cur = conn.cursor()
     cur.execute("SELECT is_active FROM halls WHERE id = %s", (hall_id,))
     hall = cur.fetchone()
     if not hall:
@@ -97,15 +97,15 @@ def toggle_hall_status(mysql, hall_id: int) -> tuple[bool, str]:
         return False, 'Hall not found.'
     new_status = 0 if hall['is_active'] else 1
     cur.execute("UPDATE halls SET is_active = %s WHERE id = %s", (new_status, hall_id))
-    mysql.connection.commit()
+    conn.commit()
     cur.close()
     label = 'activated' if new_status else 'deactivated'
     return True, f'Hall {label} successfully.'
 
 
-def get_all_faculty(mysql) -> list:
+def get_all_faculty(conn) -> list:
     """Return all faculty accounts."""
-    cur = mysql.connection.cursor()
+    cur = conn.cursor()
     cur.execute("""
         SELECT u.*, COUNT(b.id) AS booking_count
         FROM   users u
@@ -119,9 +119,9 @@ def get_all_faculty(mysql) -> list:
     return rows
 
 
-def toggle_faculty_status(mysql, user_id: int) -> tuple[bool, str]:
+def toggle_faculty_status(conn, user_id: int) -> tuple[bool, str]:
     """Enable / disable a faculty account."""
-    cur = mysql.connection.cursor()
+    cur = conn.cursor()
     cur.execute("SELECT is_active, name FROM users WHERE id = %s AND role = 'faculty'", (user_id,))
     user = cur.fetchone()
     if not user:
@@ -129,7 +129,7 @@ def toggle_faculty_status(mysql, user_id: int) -> tuple[bool, str]:
         return False, 'Faculty not found.'
     new_status = 0 if user['is_active'] else 1
     cur.execute("UPDATE users SET is_active = %s WHERE id = %s", (new_status, user_id))
-    mysql.connection.commit()
+    conn.commit()
     cur.close()
     label = 'activated' if new_status else 'deactivated'
     return True, f'Account for {user["name"]} {label}.'

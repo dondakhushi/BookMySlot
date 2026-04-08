@@ -76,6 +76,14 @@
 
       <div class="nav-section-label">My Bookings</div>
       <a href="{{ url_for('my_bookings') }}"><i class="bi bi-list-ul"></i> My Bookings</a>
+      
+      <div class="nav-section-label">Updates</div>
+      <a href="{{ url_for('notifications') }}">
+        <i class="bi bi-bell"></i> Notifications
+        {% if unread_notifications > 0 %}
+          <span class="badge-notif">{{ unread_notifications }}</span>
+        {% endif %}
+      </a>
     {% endif %}
   </div>
 
